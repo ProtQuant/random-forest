@@ -42,7 +42,7 @@ df_f.set_index(['NAME'], inplace=True)  # should have no duplicate peptides
 # print(df_f)
 df_s.set_index(['peptide'], inplace=True)
 # print(df_s)
-df = pd.merge(df_s, df_f, left_index=True, right_index=True) 
+df = pd.merge(df_s, df_f, left_index=True, right_index=True)
 print(df)
 # find out the distribution of scores
 print(df['score'].value_counts())
