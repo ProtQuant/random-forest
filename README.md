@@ -1,4 +1,15 @@
 # random-forest
 stage two of the project
 
-* files in dragon_random_forest are the two python code Tony once sent 
+* saved data/df_s and saved data/df_f are two dataframe stores info of scores and features. 
+
+  You can use this method to load them.
+
+  ```python
+  def load_object(filename):
+      with open(filename, 'rb') as inp:
+          data = pickle.load(inp)
+      return data
+  ```
+
+  
