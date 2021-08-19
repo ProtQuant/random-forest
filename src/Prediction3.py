@@ -49,7 +49,7 @@ def preprocess_scores(df_s, df_s_file):
     return df_s
 
 
-def read_in_features(feature_file, chunksize = -1):
+def read_in_features(feature_file, chunksize=-1):
     if chunksize < 0:
         df_f = pd.read_csv(feature_file, sep='\t')
     else:
@@ -67,7 +67,7 @@ def read_in_features(feature_file, chunksize = -1):
     return df_f
 
 
-def preprocess_features(df_f, df_f_file = '../saved data/df_f', need_save = True):
+def preprocess_features(df_f, df_f_file='../saved data/df_f', need_save=True):
     print('preprocessing features: ---------------')
     print("replace NaN and 'na' with 0")
     df_f.fillna(0, inplace=True)
@@ -97,7 +97,14 @@ def merge_score_and_feature(df_s, df_f):
     print(df_dataset)
     return df_dataset
 
+
 def data_screening(df_dataset, df_dataset_file):
+    """
+
+    :param df_dataset:
+    :param df_dataset_file:
+    :return:
+    """
     print('preprocessing the dataset: ---------------')
     # check data type of each column
     # pd.set_option('display.max_rows', 6000)
@@ -120,17 +127,47 @@ def data_screening(df_dataset, df_dataset_file):
     return df_dataset
 
 
+def generate_dataset(need_init_dataset = False, need_init_score = False, need_init_feature = False, chunk_size = 50000,
+                     score_file = '../input files/score.csv', feature_file = "../input files/all_dragon.txt",
+                     df_s_file = '../saved data/df_s', df_f_file = '../saved data/df_f',
+                     df_dataset_file = '../saved data/df_dataset'):
+    """
+    * This function includes 
+        - reading in and preprocessing the dataframe of scores(df_s) and features(df_f), and 
+        - deleting useless columns in the dataframe that made from inner joining df_s and df_f to get df_dataset.
+    * Purpose of this function 
+        - to generate a proper dataset(df_dataset) for training and predicting later 
+    * Structure:
+        - If need_init_dataset is set to False, which means df_dataset has been made, and then all that need to be done 
+    is just load df_dataset from saved data. 
+        - If need_init_dataset is set to be ture, it will depends on the values of need_init_score and 
+    need_init_feature to decide whether to preprocess or to just load in the df_s and df_f.
+
+    :parameter:
+        - data loading options (boolean) :
+            need_init_dataset, need_init_score, need_init_feature, chunk_size(for read in features)
+        - path of input files (string) :
+            score_file, feature_file
+        - path to store data (string) :
+             df_s_file, df_f_file, df_dataset_file
+
+    :return:
+        df_dataset:
+            a dataframe contains the score and chemical features of different peptides
+    """
+
 """
 parameters
 """
 #  data loading options
+need_init_dataset = True
 need_init_score = True
 need_init_feature = True
 chunk_size = 50000
 
+need_init_dataset = False
 need_init_score = False
-# need_init_feature = False
-
+need_init_feature = False
 
 #  input files
 # score_file = '../../score-peptides/output/score.csv'
@@ -150,34 +187,40 @@ saveDataFolder = "../saved data"
 if not os.path.exists(saveDataFolder):
     os.makedirs(saveDataFolder)
 
-"""
-create the dataframe of scores 
-"""
-if need_init_score:
-    df_s = read_in_scores(score_file)
-    df_s = preprocess_scores(df_s, df_s_file)
+
+if need_init_dataset:
+    """
+    create the dataframe of scores 
+    """
+    if need_init_score:
+        df_s = read_in_scores(score_file)
+        df_s = preprocess_scores(df_s, df_s_file)
+    else:
+        df_s = load_object(df_s_file)
+        print('finish load scores: ---------------')
+        print(df_s)
+
+    """
+    create the dataframe of features
+    """
+    if need_init_feature:
+        df_f = read_in_features(feature_file, chunk_size)  # still cannot be read in once for all on the server
+        df_f = preprocess_features(df_f, df_f_file)
+    else:
+        df_f = load_object(df_f_file)
+        print('finish load features: ---------------')
+        print(df_f)
+
+    """
+    create dataset by join and screen
+    """
+    df_dataset = merge_score_and_feature(df_s, df_f)
+    df_dataset = data_screening(df_dataset, df_dataset_file)
 else:
-    df_s = load_object(df_s_file)
-    print('finish load scores: ---------------')
-    print(df_s)
+    df_dataset = load_object(df_dataset_file)
+    print('finish load features: ---------------')
+    print(df_dataset)
 
-"""
-create the dataframe of features
-"""
-# df_f = read_in_features(feature_file, chunk_size)
-# save_object(df_f, df_f_file)
-df_f = load_object(df_f_file)
-print(df_f)
-# pf_f = preprocess_features(df_f, df_f_file)
-
-# #  still cannot be read in once for all on the server
-# if need_init_feature:
-#     df_f = read_in_features(feature_file)
-#     print('finish read in features')
-#     df_f = preprocess_features(df_f, df_f_file)
-#     print('finish init features')
-# else:
-#     df_f = load_object(df_f_file)
 
 
 # """
