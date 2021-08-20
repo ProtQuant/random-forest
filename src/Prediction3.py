@@ -1,6 +1,7 @@
 ## 要排序
 ## all_dragon is too big
-# os.chdir('/home/sgyzh180/ProtQuant/random forest/src/')
+# cd ProtQuant/random\ forest/src
+# conda activate ProtQuantEnv
 
 import os
 import pickle
@@ -54,12 +55,12 @@ def read_in_features(feature_file, chunksize=-1):
         df_f = pd.read_csv(feature_file, sep='\t')
     else:
         print('read in drangon data by chunks, will create a whole dataframe for it ---------------')
-        features = pd.read_csv(feature_file, sep='\t', chunksize=chunk_size)
+        features = pd.read_csv(feature_file, sep='\t', chunksize=chunksize)
         chunkIndex = 1
         df_f = pd.DataFrame()
         for chunk in features:
             df_f = df_f.append(chunk)
-            print("have read in " + str(chunkIndex * chunk_size) + " lines in dragon.txt")
+            print("have read in " + str(chunkIndex * chunksize) + " lines in dragon.txt")
             chunkIndex += 1
 
     print('finish read in features: ---------------')
@@ -127,10 +128,10 @@ def data_screening(df_dataset, df_dataset_file):
     return df_dataset
 
 
-def generate_dataset(need_init_dataset = False, need_init_score = False, need_init_feature = False, chunk_size = 50000,
-                     score_file = '../input files/score.csv', feature_file = "../input files/all_dragon.txt",
-                     df_s_file = '../saved data/df_s', df_f_file = '../saved data/df_f',
-                     df_dataset_file = '../saved data/df_dataset'):
+def generate_dataset(need_init_dataset=False, need_init_score=False, need_init_feature=False, chunk_size=50000,
+                     score_file='../input files/score.csv', feature_file="../input files/all_dragon.txt",
+                     saveDataFolder="../saved data", df_s_file='../saved data/df_s', df_f_file='../saved data/df_f',
+                     df_dataset_file='../saved data/df_dataset'):
     """
     * This function includes 
         - reading in and preprocessing the dataframe of scores(df_s) and features(df_f), and 
@@ -145,83 +146,161 @@ def generate_dataset(need_init_dataset = False, need_init_score = False, need_in
 
     :parameter:
         - data loading options (boolean) :
-            need_init_dataset, need_init_score, need_init_feature, chunk_size(for read in features)
+            need_init_dataset, need_init_score, need_init_feature, chunk_size(for read in features, read in all if negative)
         - path of input files (string) :
             score_file, feature_file
         - path to store data (string) :
-             df_s_file, df_f_file, df_dataset_file
+            saveDataFolder, df_s_file, df_f_file, df_dataset_file
 
     :return:
         df_dataset:
             a dataframe contains the score and chemical features of different peptides
     """
-
-"""
-parameters
-"""
-#  data loading options
-need_init_dataset = True
-need_init_score = True
-need_init_feature = True
-chunk_size = 50000
-
-need_init_dataset = False
-need_init_score = False
-need_init_feature = False
-
-#  input files
-# score_file = '../../score-peptides/output/score.csv'
-score_file = '../input files/score.csv'
-# feature_file = "D:/all_dragon.txt"
-feature_file = "../input files/all_dragon.txt"
-
-# default values
-df_s_file = '../saved data/df_s'  # df_s is a dataframe transformed from score.csv
-df_f_file = '../saved data/df_f'  # df_f is a dataframe transformed from all_dragon.txt
-df_dataset_file = '../saved data/df_dataset'
-
-"""
-create needed output folder
-"""
-saveDataFolder = "../saved data"
-if not os.path.exists(saveDataFolder):
-    os.makedirs(saveDataFolder)
-
-
-if need_init_dataset:
     """
-    create the dataframe of scores 
+    create needed output folder
     """
-    if need_init_score:
-        df_s = read_in_scores(score_file)
-        df_s = preprocess_scores(df_s, df_s_file)
+    if not os.path.exists(saveDataFolder):
+        os.makedirs(saveDataFolder)
+
+    if need_init_dataset:
+        """
+        create the dataframe of scores 
+        """
+        if need_init_score:
+            df_s = read_in_scores(score_file)
+            df_s = preprocess_scores(df_s, df_s_file)
+        else:
+            df_s = load_object(df_s_file)
+            print('finish load scores: ---------------')
+            print(df_s)
+
+        """
+        create the dataframe of features
+        """
+        if need_init_feature:
+            df_f = read_in_features(feature_file, chunk_size)  # still cannot be read in once for all on the server
+            df_f = preprocess_features(df_f, df_f_file)
+        else:
+            df_f = load_object(df_f_file)
+            print('finish load features: ---------------')
+            print(df_f)
+
+        """
+        create dataset by join and screen
+        """
+        df_dataset = merge_score_and_feature(df_s, df_f)
+        df_dataset = data_screening(df_dataset, df_dataset_file)
     else:
-        df_s = load_object(df_s_file)
-        print('finish load scores: ---------------')
-        print(df_s)
+        df_dataset = load_object(df_dataset_file)
+        print('finish load the dataset: ---------------')
+        print(df_dataset)
 
-    """
-    create the dataframe of features
-    """
-    if need_init_feature:
-        df_f = read_in_features(feature_file, chunk_size)  # still cannot be read in once for all on the server
-        df_f = preprocess_features(df_f, df_f_file)
-    else:
-        df_f = load_object(df_f_file)
-        print('finish load features: ---------------')
-        print(df_f)
+    # print('size of [#pep, #label+feature]: '+str(df_dataset.shape))
+    print('distribution of labels: ------')
+    print(df_dataset['score'].value_counts())
 
-    """
-    create dataset by join and screen
-    """
-    df_dataset = merge_score_and_feature(df_s, df_f)
-    df_dataset = data_screening(df_dataset, df_dataset_file)
-else:
-    df_dataset = load_object(df_dataset_file)
-    print('finish load features: ---------------')
-    print(df_dataset)
+    return df_dataset
 
 
+def draw_score_against_length(df_dataset, score_length_pic='../saved data/score_length_pic', score_label='score'):
+    """
+    Will draw a picture of peptides' length against their score and save it
+    :param df_dataset: dataframe, should have the peptides as index and a column storing score
+    :param length_score_pic: string, path to save the picture
+    :param score_label: string, the name of the score column
+    :return: df_ls, a dataframe of peptides' score and length, sorted by length
+    """
+    # extract the score
+    df_ls = pd.DataFrame(df_dataset, columns=[score_label])
+    # record the length of each peptide (the index)
+    df_ls['length'] = df_ls.apply(lambda x: len(str(x.name)), axis=1)
+    # sort by length
+    df_ls.sort_values(by='length', inplace=True)
+    # print(df_ls)
+    plt.figure()
+    plt.xlabel("length")
+    plt.ylabel("score")
+    plt.plot(df_ls['length'], df_ls['score'], '.')
+    plt.savefig(score_length_pic)
+    print("finish drawing scores against length ---------------")
+    return df_ls
+
+def main():
+    """ """
+    """
+    parameters
+    """
+    #  data loading options
+    need_init_dataset = False
+    need_init_score = False
+    need_init_feature = False
+    chunk_size = 50000
+
+    #  input files
+    score_file = '../input files/score.csv'
+    feature_file = "../input files/all_dragon.txt"
+
+    # save path
+    saveDataFolder = "../saved data"
+    df_s_file = '../saved data/df_s'  # df_s is a dataframe transformed from score.csv
+    df_f_file = '../saved data/df_f'  # df_f is a dataframe transformed from all_dragon.txt
+    df_dataset_file = '../saved data/df_dataset'
+
+    # training
+    num_trees = 200
+    estimator = RandomForestRegressor(n_estimators=num_trees, max_depth=None)
+    min_features_to_select = 1008
+    step = 50
+
+    """
+    create dataset
+    """
+    df_dataset = generate_dataset(need_init_dataset=need_init_dataset, need_init_feature=need_init_feature,
+                                  need_init_score=need_init_score, chunk_size=chunk_size, score_file=score_file,
+                                  feature_file=feature_file, saveDataFolder=saveDataFolder, df_s_file=df_s_file,
+                                  df_f_file=df_f_file, df_dataset_file=df_dataset_file)
+
+    draw_score_against_length(df_dataset)
+    """
+    create training and testing data
+    """
+    label = 'score'
+    train, test = train_test_split(df_dataset)
+    train, test = train_test_split(test)
+
+    #  will use training set for cross validation
+    y_train = train[label]
+    X_train = train.drop(label, 1)
+
+    test = test.sort_values(by=[label])
+    y_test = test[label]
+    X_test = test.drop(label, 1)
+
+    print(X_train.shape)
+    print(y_train.shape)
+    print(X_test.shape)
+    print(y_test.shape)
+
+    """
+    training and predicting
+    """
+    Rf = RandomForestRegressor(n_estimators=num_trees, max_depth=None, n_jobs=-1)
+    print('start training the model')
+    Rf.fit(X_train, y_train)
+    save_object(Rf, "../saved data/Rf")
+
+    print('predicting')
+    y_ = Rf.predict(X_test)
+    score = r2_score(y_test, y_) # Best possible score is 1.0
+    print('r2_score: '+str(score))
+
+    x = range(len(y_test))
+    plt.scatter(x, y_test)
+    plt.scatter(x, y_)
+    plt.savefig('../saved data/prediction_Rf')
+
+if __name__ == '__main__':
+    main()
 
 # """
 # merge score and feature when read in the features
@@ -240,11 +319,3 @@ else:
 #     print("have processed " + str(chunkIndex * chunk_size) + " lines in dragon.txt")
 #     chunkIndex += 1
 #     print(data_set)
-#
-# save_object(data_set, '../saved data/data_set.pkl')
-#
-# print('size of [#pep, #label+feature]: -------')
-# print(data_set.shape)
-# # find out the distribution of scores
-# print('distribution of labels: ------')
-# print(data_set['score'].value_counts())
