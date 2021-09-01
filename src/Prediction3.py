@@ -5,11 +5,12 @@
 
 import os
 import pickle
+import time
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import r2_score
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from matplotlib import pyplot as plt
 
 
@@ -225,8 +226,11 @@ def draw_score_against_length(df_dataset, score_length_pic='../saved data/score_
     print("finish drawing scores against length ---------------")
     return df_ls
 
+
 def main():
     """ """
+    start = time.perf_counter()
+
     """
     parameters
     """
@@ -235,6 +239,8 @@ def main():
     need_init_score = False
     need_init_feature = False
     chunk_size = 50000
+
+    need_score_length_pic = False
 
     #  input files
     score_file = '../input files/score.csv'
@@ -247,10 +253,10 @@ def main():
     df_dataset_file = '../saved data/df_dataset'
 
     # training
+    need_cross_validation = False
+    need_fitting = False
     num_trees = 200
-    estimator = RandomForestRegressor(n_estimators=num_trees, max_depth=None)
-    min_features_to_select = 1008
-    step = 50
+    n_jobs = 8
 
     """
     create dataset
@@ -260,44 +266,89 @@ def main():
                                   feature_file=feature_file, saveDataFolder=saveDataFolder, df_s_file=df_s_file,
                                   df_f_file=df_f_file, df_dataset_file=df_dataset_file)
 
-    draw_score_against_length(df_dataset)
-    """
-    create training and testing data
-    """
+    if need_score_length_pic:
+        draw_score_against_length(df_dataset)
+
+    data_time = time.perf_counter()
+    print('finish preparing dataset info, time: ' + str(data_time - start))
+
     label = 'score'
-    train, test = train_test_split(df_dataset)
-    train, test = train_test_split(test)
+    if need_cross_validation:
+        """
+        cross validation:
+        """
+        print("start cross validation: ---------")
+        y = df_dataset[label]
+        X = df_dataset.drop(label,1)
+        Rf = RandomForestRegressor(n_estimators=num_trees, max_depth=None, verbose=2, n_jobs=n_jobs)
+        print(cross_val_score(Rf, X, y, cv=5, verbose=2, scoring='r2'))
 
-    #  will use training set for cross validation
-    y_train = train[label]
-    X_train = train.drop(label, 1)
+    else:
+        """
+        create training and testing data
+        """
+        train, test = train_test_split(df_dataset)
+        # drop, df_dataset = train_test_split(df_dataset)
+        # drop, df_dataset = train_test_split(df_dataset)
+        # train, test = train_test_split(df_dataset)
 
-    test = test.sort_values(by=[label])
-    y_test = test[label]
-    X_test = test.drop(label, 1)
+        #  will use training set for cross validation if use rfecv
+        y_train = train[label]
+        X_train = train.drop(label, 1)
 
-    print(X_train.shape)
-    print(y_train.shape)
-    print(X_test.shape)
-    print(y_test.shape)
+        test = test.sort_values(by=[label])
+        y_test = test[label]
+        X_test = test.drop(label, 1)
 
-    """
-    training and predicting
-    """
-    Rf = RandomForestRegressor(n_estimators=num_trees, max_depth=None, n_jobs=-1)
-    print('start training the model')
-    Rf.fit(X_train, y_train)
-    save_object(Rf, "../saved data/Rf")
+        # print("X_train, y_train, X_test, y_test ---------------")
+        # print(X_train)
+        # print(y_train)
+        # print(X_test)
+        # print(y_test)
 
-    print('predicting')
-    y_ = Rf.predict(X_test)
-    score = r2_score(y_test, y_) # Best possible score is 1.0
-    print('r2_score: '+str(score))
+        n_training_samples = X_train.shape[0]
 
-    x = range(len(y_test))
-    plt.scatter(x, y_test)
-    plt.scatter(x, y_)
-    plt.savefig('../saved data/prediction_Rf')
+        print('n_samples in total: ' + str(df_dataset.shape[0]))
+        print('n_samples for training: ' + str(n_training_samples))
+        print('n_samples for testing : ' + str(X_test.shape[0]))
+
+        sample_time = time.perf_counter()
+        print('finish preparing training&tesring info, time: ' + str(sample_time - data_time))
+
+        """
+        training and predicting
+        """
+        if need_fitting:
+            Rf = RandomForestRegressor(n_estimators=num_trees, max_depth=None, n_jobs=n_jobs, verbose=2)
+            print('start training the model')
+            Rf.fit(X_train, y_train)
+            training_time = time.perf_counter()
+            print('finish training a model, time: ' + str(training_time - sample_time))
+
+            save_object(Rf, "../saved data/Rf_" + str(n_training_samples))
+            saving_model_time = time.perf_counter()
+            print('finish saving the model, time: '+str(saving_model_time-training_time))
+        else:
+            Rf = load_object("../saved data/Rf_" + str(n_training_samples))
+            load_model_time = time.perf_counter()
+            print('finish loading model, time: '+str(load_model_time-sample_time))
+
+        print('predicting ---------------')
+        y_ = Rf.predict(X_test)
+        score = r2_score(y_test, y_)  # Best possible score is 1.0
+        print('r2_score: ' + str(score))
+
+        plt.figure()
+        plt.xlabel("peptides")
+        plt.ylabel("score")
+        x = range(len(y_test))
+        plt.scatter(x, y_)
+        plt.scatter(x, y_test)
+        plt.savefig('../saved data/prediction_Rf_'+str(n_training_samples))
+
+        finish = time.perf_counter()
+        print('total time: '+str(finish-start))
+
 
 if __name__ == '__main__':
     main()
