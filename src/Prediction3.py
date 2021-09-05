@@ -194,7 +194,7 @@ def generate_dataset(need_init_dataset=False, need_init_score=False, need_init_f
     else:
         df_dataset = load_object(df_dataset_file)
         print('finish load the dataset: ---------------')
-        print(df_dataset)
+        print(df_dataset.shape)
 
     # print('size of [#pep, #label+feature]: '+str(df_dataset.shape))
     print('distribution of labels: ------')
@@ -241,6 +241,7 @@ def main():
     chunk_size = 50000
 
     need_score_length_pic = False
+    save_dataset_dict = True
 
     #  input files
     score_file = '../input files/score.csv'
@@ -254,9 +255,10 @@ def main():
 
     # training
     need_cross_validation = False
-    need_fitting = False
+    need_fitting = True
+    data_portion = 1
     num_trees = 200
-    n_jobs = 8
+    n_jobs = 10
 
     """
     create dataset
@@ -287,10 +289,9 @@ def main():
         """
         create training and testing data
         """
+        if data_portion != 1:
+            drop, df_dataset = train_test_split(df_dataset, test_size=data_portion)
         train, test = train_test_split(df_dataset)
-        # drop, df_dataset = train_test_split(df_dataset)
-        # drop, df_dataset = train_test_split(df_dataset)
-        # train, test = train_test_split(df_dataset)
 
         #  will use training set for cross validation if use rfecv
         y_train = train[label]
@@ -312,8 +313,19 @@ def main():
         print('n_samples for training: ' + str(n_training_samples))
         print('n_samples for testing : ' + str(X_test.shape[0]))
 
+        # create needed output folder for this estimator
+        saveDataFolder = saveDataFolder + '/Rf_' + str(n_training_samples)
+        if not os.path.exists(saveDataFolder):
+            os.makedirs(saveDataFolder)
+
+        if save_dataset_dict:
+            dataset_dict = {'X_train': X_train, 'y_train': y_train, 'X_test': X_test, 'y_test': y_test}
+            save_object(dataset_dict, saveDataFolder+'/dataset_dict')
+
         sample_time = time.perf_counter()
         print('finish preparing training&tesring info, time: ' + str(sample_time - data_time))
+
+
 
         """
         training and predicting
@@ -325,11 +337,11 @@ def main():
             training_time = time.perf_counter()
             print('finish training a model, time: ' + str(training_time - sample_time))
 
-            save_object(Rf, "../saved data/Rf_" + str(n_training_samples))
+            save_object(Rf, saveDataFolder+"/Rf_" + str(n_training_samples))
             saving_model_time = time.perf_counter()
             print('finish saving the model, time: '+str(saving_model_time-training_time))
         else:
-            Rf = load_object("../saved data/Rf_" + str(n_training_samples))
+            Rf = load_object(saveDataFolder+"/Rf_" + str(n_training_samples))
             load_model_time = time.perf_counter()
             print('finish loading model, time: '+str(load_model_time-sample_time))
 
@@ -344,7 +356,7 @@ def main():
         x = range(len(y_test))
         plt.scatter(x, y_)
         plt.scatter(x, y_test)
-        plt.savefig('../saved data/prediction_Rf_'+str(n_training_samples))
+        plt.savefig(saveDataFolder+'/prediction_Rf_'+str(n_training_samples))
 
         finish = time.perf_counter()
         print('total time: '+str(finish-start))
