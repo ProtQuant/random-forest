@@ -1,7 +1,7 @@
 # random-forest
 stage two of the project
 
-* rf_classification1.py classified peptides into 2 types ('N' - scored 0, 'Y' - others)
+* rf_classification1.py classifies peptides into 2 types ('N' - scored 0, 'Y' - others)
   * data needed (have uploaded to Teams)
     * `feature_file = '../saved data/rfe2_204116/rfe2_dict_204116'`
     * `df_dataset_file = '../saved data/df_dataset'`
