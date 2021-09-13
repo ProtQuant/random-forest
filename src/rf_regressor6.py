@@ -342,7 +342,7 @@ def main():
     n = [1907, 1000, 700, 500, 400, 300, 200, 100, 70, 60, 50, 40, 30, 20, 10, 5, 1, 0]  # n_features
     test_size = 0.25
     label = 'score'
-    estimator = RandomForestRegressor(n_estimators=300, max_depth=None, verbose=1, n_jobs=10)
+    estimator = RandomForestRegressor(n_estimators=200, max_depth=None, verbose=1, n_jobs=10)
     save_rfe_dict = True
     draw_prediction_pic = True
     save_data_folder = '../saved data'
