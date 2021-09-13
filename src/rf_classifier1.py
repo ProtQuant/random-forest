@@ -105,18 +105,23 @@ def preprocessing(df_dataset_file='../saved data/df_dataset', df_dataset_file_al
 def main():
     start = time.perf_counter()
     print()
-
+    """
+    setting parameters
+    """
     feature_file = '../saved data/rfe2_204116/rfe2_dict_204116'
-    n_features = 5270  # [5270, 1907, 1000, 700, 500, 400, 300, 200, 100, 70, 60, 50, 40, 30, 20, 10, 5, 1]
+    n_features = 50  # [1907, 1000, 700, 500, 400, 300, 200, 100, 70, 60, 50, 40, 30, 20, 10, 5, 1]
 
     df_dataset_file = '../saved data/df_dataset'
     data_portion = 1
     n_class = 2
 
-    clf = RandomForestClassifier(n_estimators=200, n_jobs=10, verbose=1)
+    clf = RandomForestClassifier(n_estimators=200, n_jobs=10, verbose=0)
 
     save_data = True
 
+    """
+    process begin
+    """
     print('Preprocessing data ...')
     features = pick_features(feature_file=feature_file, feature_number=n_features)
     X_train, y_train, X_test, y_test = preprocessing(features=features, df_dataset_file=df_dataset_file,
@@ -143,7 +148,7 @@ def main():
     print('===== predicting on testing set ...')
     # mean accuracy
     score = clf.score(X_test, y_test)
-    print('----- prediction score: ')
+    print('----- prediction score (accuracy): ')
     print(score)
     print()
 
@@ -165,7 +170,7 @@ def main():
     print('True Y rate: ' + str(YY / (YY + YN)))
     print()
 
-    print('===== predicting on training set ...')
+    print('===== predicting on training set (accuracy + confusion matrix)...')
     print(clf.score(X_train, y_train))
     y_pred_train = clf.predict(X_train)
     print(confusion_matrix(y_train, y_pred_train, labels=['N', 'Y']))

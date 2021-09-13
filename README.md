@@ -2,10 +2,15 @@
 stage two of the project
 
 * rf_classification1.py classified peptides into 2 types ('N' - scored 0, 'Y' - others)
+  * data needed (have uploaded to Teams)
+    * `feature_file = '../saved data/rfe2_204116/rfe2_dict_204116'`
+    * `df_dataset_file = '../saved data/df_dataset'`
+  * overfitting on training set too much, almost can't predict peptides from 'Y'
 
 * rf_regressor6.py are for feature eliminating
 
-  * Try if you have `df_dataset_file = '../saved data/df_dataset'`
+  * data needed:
+    * `df_dataset_file = '../saved data/df_dataset'`
 
 * saved data in Teams Group File
 
