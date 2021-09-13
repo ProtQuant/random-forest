@@ -115,7 +115,7 @@ def main():
     n_features = 50  # [1907, 1000, 700, 500, 400, 300, 200, 100, 70, 60, 50, 40, 30, 20, 10, 5, 1]
 
     df_dataset_file = '../saved data/df_dataset'
-    data_portion = 0.01
+    data_portion = 0.1
 
     #  choose needed features
     features = pick_features(feature_file=feature_file, feature_number=n_features)
@@ -169,7 +169,7 @@ def main():
     if not os.path.exists('../saved data/clf2'):
         os.makedirs('../saved data/clf2')
 
-    plt.savefig('../saved data/clf2/cross_val_precision')
+    plt.savefig('../saved data/clf2/cross_val_precision_'+str(X.shape[0]))
 
 
 if __name__ == '__main__':
