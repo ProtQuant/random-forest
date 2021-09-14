@@ -169,7 +169,7 @@ def main():
     if not os.path.exists('../saved data/clf2'):
         os.makedirs('../saved data/clf2')
 
-    plt.savefig('../saved data/clf2/cross_val_precision_'+str(X.shape[0]))
+    plt.savefig('../saved data/clf2/cross_val_recall_'+str(X.shape[0]))
 
 
 if __name__ == '__main__':
