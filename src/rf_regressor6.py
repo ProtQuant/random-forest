@@ -15,7 +15,7 @@ from matplotlib import pyplot as plt
 from sklearn.base import clone
 
 
-def save_object(obj, filename):  # filename: ".pkl"
+def save_object(obj, filename):
     with open(filename, 'wb') as outp:  # Overwrites any existing file.
         pickle.dump(obj, outp, pickle.HIGHEST_PROTOCOL)
 
@@ -53,6 +53,7 @@ def preprocess_scores(df_s, df_s_file):
 
 
 def read_in_features(feature_file, chunksize=-1):
+    # read in features from file
     if chunksize < 0:
         df_f = pd.read_csv(feature_file, sep='\t')
     else:
@@ -102,12 +103,6 @@ def merge_score_and_feature(df_s, df_f):
 
 
 def data_screening(df_dataset, df_dataset_file):
-    """
-
-    :param df_dataset:
-    :param df_dataset_file:
-    :return:
-    """
     print('preprocessing the dataset: ---------------')
     # check data type of each column
     # pd.set_option('display.max_rows', 6000)
@@ -215,31 +210,36 @@ def draw_score_against_length(df_dataset, score_length_pic='../saved data/score_
     """
     # extract the score
     df_ls = pd.DataFrame(df_dataset, columns=[score_label])
+
     # record the length of each peptide (the index)
     df_ls['length'] = df_ls.apply(lambda x: len(str(x.name)), axis=1)
+
     # sort by length
     df_ls.sort_values(by='length', inplace=True)
+
     # print(df_ls)
     plt.figure()
     plt.xlabel("length")
     plt.ylabel("score")
     plt.plot(df_ls['length'], df_ls['score'], '.')
     plt.savefig(score_length_pic)
+
     print("finish drawing scores against length ---------------")
     return df_ls
 
 
 def split_dateset(df_dataset, test_size=0.25, label='score'):
     """
-    :param df_dataset: peptides, score+fetures
-    :param label: ['score'] volumn name
+    :param df_dataset: Dataframe, index=peptides, columns=score+fetures
+    :param test_size: float, (0,1)
+    :param label: string, ['score'] column name
     :return: X_train, y_train, X_test, y_test
     """
-
     train, test = train_test_split(df_dataset, test_size=test_size)
     y_train = train[label]
     X_train = train.drop(label, 1)
 
+    # sort test set by score
     test = test.sort_values(by=[label])
     y_test = test[label]
     X_test = test.drop(label, 1)
@@ -253,16 +253,26 @@ def recursive_feature_elimination(X_train, y_train, X_test, y_test, estimator, r
                                   draw_prediction_pic=True, save_pic_folder='../saved data/rfe prediction/'):
     """
     Altered from sklean rfe.
+    Will reduce features from origin_n_features to target_n_features
+    Use rfe_dict[origin_n_features]['support'], rfe_dict[origin_n_features]['ranking'] to
+    - calculate rfe_dict[origin_n_features]['score'] (r2_score <= 1)
+    - generate rfe_dict[target_n_features]['support'], rfe_dict[target_n_features]['ranking']
 
-    features = np.arange(n_features)[support_] # indices of needed features
-    X_test.iloc[:, features], y_test # the way to predict
+    :param
+    estimator: random forest regressor
+    origin_n_features: int, an existing key in rfe_dict
+    target_n_features: int, smaller than origin_n_features
 
-    will fit and predict via origin_n_features
-    will generate mask of needed features for target_n_features
-
-    :param X:
-    :param y:
     :return:
+    rfe_dict: dictionary, storing masks for features (support), feature ranking (most important : 1), r2_score on test
+              set (default to 9999, should be no larger than 1)
+                n_features: {'support': [], 'ranking': [], 'score': 9999}
+              How to use:
+                indices of needed features:
+                    support = rfe_dict[target_n_features]['support']
+                    features = np.arange(n_all_features)[support]
+                Select these features in test set:
+                    X_test.iloc[:, features], y_test
     """
     print()
     n_features = X_train.shape[1]
@@ -338,7 +348,7 @@ def main():
     df_dataset_file = '../saved data/df_dataset'
 
     # training
-    data_portion = 0.005 # 340193 in total #0.3-76543 #0.5-127572 # 0.8-204116
+    data_portion = 0.01  # (0,1], set to 1 if using all the peptides
     n = [1907, 1000, 700, 500, 400, 300, 200, 100, 70, 60, 50, 40, 30, 20, 10, 5, 1, 0]  # n_features
     test_size = 0.25
     label = 'score'
