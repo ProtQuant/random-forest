@@ -138,7 +138,7 @@ def generate_dataset(need_init_dataset=False, need_init_score=False, need_init_f
     * Structure:
         - If need_init_dataset is set to False, which means df_dataset has been made, and then all that need to be done
     is just load df_dataset from saved data.
-        - If need_init_dataset is set to be ture, it will depends on the values of need_init_score and
+        - If need_init_dataset is set to be true, it will depends on the values of need_init_score and
     need_init_feature to decide whether to preprocess or to just load in the df_s and df_f.
 
     :parameter:
@@ -301,8 +301,8 @@ def recursive_feature_elimination(X_train, y_train, X_test, y_test, estimator, r
     rfe_dict[target_n_features] = {'support': support, 'ranking': ranking, 'score': 9999}
     print([sum(rfe_dict[k]['support']) for k in rfe_dict])
     if save_rfe_dict:
-        save_object(rfe_dict, save_data_folder + '/rfe2_dict_' + str(n_training_samples))
-        print('have saved rfe2_dict_' + str(n_training_samples))
+        save_object(rfe_dict, save_data_folder + '/rfe_dict')
+        print('have saved rfe_dict_' + str(n_training_samples))
 
     if draw_prediction_pic:
         if not os.path.exists(save_pic_folder):
@@ -330,32 +330,33 @@ def main():
     """
     #  data loading options
     need_init_dataset = False
-    need_init_score = False
-    need_init_feature = False
+    need_init_score = True
+    need_init_feature = True
     chunk_size = 50000
-
-    need_score_length_pic = False
-    save_dataset_dict = True
 
     #  input files
     score_file = '../input files/score.csv'
     feature_file = "../input files/all_dragon.txt"
 
     # save path
-    saveDataFolder = "../saved data"
-    df_s_file = '../saved data/df_s'  # df_s is a dataframe transformed from score.csv
-    df_f_file = '../saved data/df_f'  # df_f is a dataframe transformed from all_dragon.txt
-    df_dataset_file = '../saved data/df_dataset'
+    base = '../saved data/'+ os.path.basename(__file__).split('.')[0]
+    save_data_folder = base
+    df_s_file = base + '/df_s'  # df_s is a dataframe transformed from score.csv
+    df_f_file = base+'/df_f'  # df_f is a dataframe transformed from all_dragon.txt
+    df_dataset_file = base + '/df_dataset'
+
+    need_score_length_pic = False
+
+    data_portion = 0.003  # (0,1], set to 1 if using all the peptides
+    save_dataset_dict = True
 
     # training
-    data_portion = 0.01  # (0,1], set to 1 if using all the peptides
     n = [1907, 1000, 700, 500, 400, 300, 200, 100, 70, 60, 50, 40, 30, 20, 10, 5, 1, 0]  # n_features
     test_size = 0.25
     label = 'score'
     estimator = RandomForestRegressor(n_estimators=200, max_depth=None, verbose=1, n_jobs=10)
     save_rfe_dict = True
     draw_prediction_pic = True
-    save_data_folder = '../saved data'
     save_pic_folder = ''
 
     """
@@ -363,10 +364,10 @@ def main():
     """
     df_dataset = generate_dataset(need_init_dataset=need_init_dataset, need_init_feature=need_init_feature,
                                   need_init_score=need_init_score, chunk_size=chunk_size, score_file=score_file,
-                                  feature_file=feature_file, saveDataFolder=saveDataFolder, df_s_file=df_s_file,
+                                  feature_file=feature_file, saveDataFolder=save_data_folder, df_s_file=df_s_file,
                                   df_f_file=df_f_file, df_dataset_file=df_dataset_file)
     if need_score_length_pic:
-        draw_score_against_length(df_dataset)
+        draw_score_against_length(df_dataset, score_length_pic=base + '/score_length_pic')
 
     if data_portion != 1:
         drop, df_dataset = train_test_split(df_dataset, test_size=data_portion)
@@ -379,10 +380,10 @@ def main():
     print('n_samples for training: ' + str(X_train.shape[0]))
     print('n_samples for testing : ' + str(X_train.shape[0]))
 
-    save_data_folder = save_data_folder + '/rfe2_' + str(n_training_samples)
+    save_data_folder = save_data_folder + '/rfe_' + str(n_training_samples)
     if not os.path.exists(save_data_folder):
         os.makedirs(save_data_folder)
-    save_pic_folder = save_data_folder + '/rfe2_prediction_' + str(n_training_samples)
+    save_pic_folder = save_data_folder + '/rfe_prediction'
 
     if save_dataset_dict:
         dataset_dict = {'n': n, 'X_train': X_train, 'y_train': y_train, 'X_test': X_test, 'y_test': y_test}
