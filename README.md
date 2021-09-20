@@ -3,7 +3,7 @@
 
 # rf_regressor6.py
 
-* The code will preprocess peptides' scores and features, and eliminate the number of features
+* The code will preprocess peptides' scores and features, and reduce the number of features
 
   It can be separated into two parts: data preprocessing and feature elimination
 
@@ -108,7 +108,7 @@
   t_n = n[1:]
   for origin_n_features, target_n_features in zip(o_n, t_n):
       rfe_dict = recursive_feature_elimination(...)
-```
+  ```
   
 * Code above will return and save a dictionary storing `support`, `ranking`, `score` for different number of features . 
   
@@ -119,6 +119,6 @@
     # To use these features..
     X_test.iloc[:, features]
     ...
-  ```
+  
   
     
