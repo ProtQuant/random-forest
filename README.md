@@ -34,7 +34,7 @@
 
    * If the code runs for the first time, set the three `need_` parameters to `True`.
 
-   * Need to change `preprocess_scores` and `preprocess_features` methods if data format in `score_file` and `feature_file changes`.
+   * Need to change `preprocess_scores` and `preprocess_features` methods if data format in `score_file` and `feature_file` changes.
 
      `score_file`:
 
