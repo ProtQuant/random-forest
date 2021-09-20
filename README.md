@@ -48,7 +48,7 @@
 
      ```
      - src
-     	- rf_regressor6.py
+     	   - rf_regressor6.py
      - input
          - all dragon.txt (have uploaded to github)
          - score.csv (output of stage one of the project)
