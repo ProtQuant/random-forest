@@ -79,7 +79,7 @@
    data_portion = 0.01  # (0,1], set to 1 if using all the peptides
    
    # whether to save X_train, y_train, X_test, y_test 
-   # id true, will save to 'saved data/rf_regressor6/rfe_(n_training samples)/data_dict
+   # if true, will save to 'saved data/rf_regressor6/rfe_(n_training samples)/data_dict
    save_dataset_dict = True
    ```
 
@@ -96,21 +96,22 @@
   ```python
   rfe_dict = {}
   # initialization for n_all_features
-  n_features = df_dataset.shape[1] - 1 # number of all the features
+  n_features = df_dataset.shape[1] - 1 # number of all the features: 1907
   support = np.ones(n_features, dtype=bool)
   ranking = np.ones(n_features, dtype=int)
   rfe_dict[n_features] = {'support': support, 'ranking': ranking, 'score': 9999}
   
-  # The first n features to select, no score for the last element of n
+  # The first n features to select, 
+  # the first element in n should be an existing key in rfe_dict, no score for the last element of n
   n = [1907, 1000, 700, 500, 400, 300, 200, 100, 70, 60, 50, 40, 30, 20, 10, 5, 1, 0]
   o_n = n[:-1]
   t_n = n[1:]
   for origin_n_features, target_n_features in zip(o_n, t_n):
       rfe_dict = recursive_feature_elimination(...)
-  ```
-
-  * Code above will return and save a dictionary storing `support`, `ranking`, `score` for different number of features . 
-
+```
+  
+* Code above will return and save a dictionary storing `support`, `ranking`, `score` for different number of features . 
+  
     ```python
     # To check the most important n features
     support = rfe_dict[target_n_features]['support']
@@ -118,6 +119,6 @@
     # To use these features..
     X_test.iloc[:, features]
     ...
-    ```
-
+  ```
+  
     
