@@ -3,11 +3,32 @@
 
 # rf_regressor6.py
 
-* The code can be separated into two parts: data preprocessing and feature elimination
+* The code will preprocess peptides' scores and features, and eliminate the number of features
+
+  It can be separated into two parts: data preprocessing and feature elimination
+
+* Default file structure:
+
+  ```
+  - src
+      - rf_regressor6.py
+  - input
+      - all dragon.txt (have uploaded to github)
+      - score.csv (output of stage one of the project)
+  - saved data (output)
+      - rf_regressor6 
+      	- df_s (have been uploaded to Teams gourp file)
+      	- df_f (have been uploaded to Teams gourp file)
+      	- df_dataset (have been uploaded to Teams gourp file)
+      	- rfe_(n_training_samples) (rfe2_204116 have been uploaded to Teams gourp file))
+      		- dataset_dict
+      		- rfe_dict
+      		- rfe_prediction
+  ```
 
 ## Data Preprocessing
 
-1. generate  and save`df_dataset`
+1. generate and save`df_dataset`
 
    * Implemented by `generate_dataset` method
 
@@ -29,7 +50,7 @@
 
 
      - If `need_init_dataset` is set to False, which means `df_dataset `has been made, and then all that need to be done is just load`df_dataset` from saved data.
-
+    
        If `need_init_dataset` is set to be true, it will depends on the values of `need_init_score `and `need_init_feature` to decide whether to preprocess or to just load in the `df_s` and `df_f`.
 
    * If the code runs for the first time, set the three `need_` parameters to `True`.
@@ -44,20 +65,6 @@
 
      ​	![image-20210920134729235](README.assets/image-20210920134729235.png)
 
-   * Default file structure:
-
-     ```
-     - src
-         - rf_regressor6.py
-     - input
-         - all dragon.txt (have uploaded to github)
-         - score.csv (output of stage one of the project)
-     - saved data (output)
-         - rf_regressor6 
-         	- df_s (have uploaded to )
-         	- df_f
-         	- df_dataset
-     ```
 
 2.  Will generate a picture (x = peptide_length, y = peptide_score) in `saved data/rf_refressor6` if setting `need_score_length_pic = True`
 
@@ -65,19 +72,52 @@
 
    (test set is sorted by score)
 
-   * Parameters
+   Parameters:
 
-     ```python
-     # The percentage of needed data to create training and testing sets
-     data_portion = 0.01  # (0,1], set to 1 if using all the peptides
-     
-     # whether to save X_train, y_train, X_test, y_test 
-     # id true, will save to 'saved data/rf_regressor6/rfe_(n_training samples)/data_dict
-     save_dataset_dict = True
-     ```
+   ```python
+   # The percentage of needed data to create training and testing sets
+   data_portion = 0.01  # (0,1], set to 1 if using all the peptides
+   
+   # whether to save X_train, y_train, X_test, y_test 
+   # id true, will save to 'saved data/rf_regressor6/rfe_(n_training samples)/data_dict
+   save_dataset_dict = True
+   ```
 
    
 
-   ## Feature Elimination
+## Feature Elimination
 
-   
+* implemented by `recursive_feature_eilmination`
+
+  (It is altered from`sklearn.feature_selection.RFE`, and I didn't use recursion here...)
+
+* Example usage:
+
+  ```python
+  rfe_dict = {}
+  # initialization for n_all_features
+  n_features = df_dataset.shape[1] - 1 # number of all the features
+  support = np.ones(n_features, dtype=bool)
+  ranking = np.ones(n_features, dtype=int)
+  rfe_dict[n_features] = {'support': support, 'ranking': ranking, 'score': 9999}
+  
+  # The first n features to select, no score for the last element of n
+  n = [1907, 1000, 700, 500, 400, 300, 200, 100, 70, 60, 50, 40, 30, 20, 10, 5, 1, 0]
+  o_n = n[:-1]
+  t_n = n[1:]
+  for origin_n_features, target_n_features in zip(o_n, t_n):
+      rfe_dict = recursive_feature_elimination(...)
+  ```
+
+  * Code above will return and save a dictionary storing `support`, `ranking`, `score` for different number of features . 
+
+    ```python
+    # To check the most important n features
+    support = rfe_dict[target_n_features]['support']
+    features = np.arange(n_all_features)[support]
+    # To use these features..
+    X_test.iloc[:, features]
+    ...
+    ```
+
+    
