@@ -179,3 +179,9 @@
   * Will print the prediction result on training set to check overfitting
 
     
+
+# rf_classifier2.py
+
+* The file use cross validation to see the relation between `n_estimator(num_of_trees)` and `recall(TP rate)`, will output a picture of it in `../saved data/rf_classfier2`
+* Input files are the same with `rf_classfier1`
+* Default range of `n_estimator` is [1, 251] step = 10
