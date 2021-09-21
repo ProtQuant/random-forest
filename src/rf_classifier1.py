@@ -115,7 +115,7 @@ def main():
     n_features = 50  # [1907, 1000, 700, 500, 400, 300, 200, 100, 70, 60, 50, 40, 30, 20, 10, 5, 1]
 
     df_dataset_file = '../saved data/df_dataset'
-    data_portion = 0.001
+    data_portion = 0.01
     n_class = 2
     random_state_splitting = None  # for both data_portion and train_test split
 
