@@ -8,9 +8,11 @@ import pickle
 import time
 import numpy as np
 import pandas as pd
+from sklearn import metrics
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.feature_selection import RFECV
-from sklearn.metrics import r2_score, confusion_matrix
+from sklearn.metrics import r2_score, confusion_matrix, roc_curve, RocCurveDisplay, plot_roc_curve, \
+    plot_precision_recall_curve
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from matplotlib import pyplot as plt
 from sklearn.base import clone
@@ -29,14 +31,14 @@ def load_object(filename):
     return data
 
 
-def split_dateset(df_dataset, test_size=0.25, label='score'):
+def split_dateset(df_dataset, test_size=0.25, label='score', random_state=None):
     """
     :param df_dataset: peptides, score+fetures
     :param label: ['score'] volumn name
     :return: X_train, y_train, X_test, y_test
     """
 
-    train, test = train_test_split(df_dataset, test_size=test_size)
+    train, test = train_test_split(df_dataset, test_size=test_size, random_state=random_state)
     y_train = train[label]
     X_train = train.drop(columns=label, axis=1)
 
@@ -62,7 +64,7 @@ def pick_features(feature_file='../saved data/rfe2_204116/rfe2_dict_204116', fea
 
 def preprocessing(df_dataset_file='../saved data/df_dataset', df_dataset_file_all='../saved data/df_dataset_all',
                   data_portion=0.5, n_class=2,
-                  test_size=0.25, label='score', features=np.arange(n_all_features)):
+                  test_size=0.25, label='score', features=np.arange(n_all_features), random_state=None):
     """"""
     if len(features) > n_all_features:
         df_dataset_file = df_dataset_file_all
@@ -72,7 +74,7 @@ def preprocessing(df_dataset_file='../saved data/df_dataset', df_dataset_file_al
     print()
 
     if data_portion != 1:
-        drop, df_dataset = train_test_split(df_dataset, test_size=data_portion)
+        drop, df_dataset = train_test_split(df_dataset, test_size=data_portion, random_state=random_state)
 
     if n_class == 2:
         print('Will conduct binary classification')
@@ -94,7 +96,8 @@ def preprocessing(df_dataset_file='../saved data/df_dataset', df_dataset_file_al
         df_dataset = df_dataset.drop(columns=label, axis=1)
         label = 'type'
 
-    X_train, y_train, X_test, y_test = split_dateset(df_dataset, test_size=test_size, label=label)
+    X_train, y_train, X_test, y_test = split_dateset(df_dataset, test_size=test_size, label=label,
+                                                     random_state=random_state)
 
     X_train = X_train.iloc[:, features]
     X_test = X_test.iloc[:, features]
@@ -112,12 +115,11 @@ def main():
     n_features = 50  # [1907, 1000, 700, 500, 400, 300, 200, 100, 70, 60, 50, 40, 30, 20, 10, 5, 1]
 
     df_dataset_file = '../saved data/df_dataset'
-    data_portion = 1
+    data_portion = 0.001
     n_class = 2
+    random_state_splitting = None  # for both data_portion and train_test split
 
-    clf = RandomForestClassifier(n_estimators=200, n_jobs=10, verbose=0)
-
-    save_data = True
+    clf = RandomForestClassifier(n_estimators=200, n_jobs=10, verbose=0, random_state=None, max_depth=None)
 
     """
     process begin
@@ -125,7 +127,8 @@ def main():
     print('Preprocessing data ...')
     features = pick_features(feature_file=feature_file, feature_number=n_features)
     X_train, y_train, X_test, y_test = preprocessing(features=features, df_dataset_file=df_dataset_file,
-                                                     data_portion=data_portion, n_class=n_class)
+                                                     data_portion=data_portion, n_class=n_class,
+                                                     random_state=random_state_splitting)
     print('n_features: ' + str(X_train.shape[1]))
     print()
     print('data_portion: ' + str(data_portion))
@@ -136,6 +139,12 @@ def main():
     print(y_train.value_counts())
     print('----- label distribution in testing set:')
     print(y_test.value_counts())
+
+    base = '../saved data/' + os.path.basename(__file__).split('.')[0]
+    save_data_folder = base+'/rf_clf_' + str(n_features) + '_' + str(X_train.shape[0])
+    if not os.path.exists(save_data_folder):
+        os.makedirs(save_data_folder)
+
     t1 = time.perf_counter()
     print('===== finish preparing dataset, time needed: ' + str(t1 - start))
     print()
@@ -169,19 +178,24 @@ def main():
     print('True N rate: ' + str(NN / (NN + NY)))
     print('True Y rate: ' + str(YY / (YY + YN)))
     print()
+    print('----- drawing roc curve')
+    plt.figure()
+    plot_roc_curve(clf, X_test, y_test)
+    plt.savefig(save_data_folder+'/ROC')
+    print('----- drawing PR curve')
+    plt.figure()
+    plot_precision_recall_curve(clf, X_test, y_test)
+    plt.savefig(save_data_folder + '/PR')
 
     print('===== predicting on training set (accuracy + confusion matrix)...')
     print(clf.score(X_train, y_train))
     y_pred_train = clf.predict(X_train)
     print(confusion_matrix(y_train, y_pred_train, labels=['N', 'Y']))
 
-    if save_data:
-        save_data_folder = '../saved data/rf_clf_1_' + str(n_features) + '_' + str(X_train.shape[0])
-        if not os.path.exists(save_data_folder):
-            os.makedirs(save_data_folder)
-        data_dict = {'clf': clf, 'features': features, 'score': score, 'confusion_matrix': confusion_matrix_,
-                     'X_train': X_train, 'y_train': y_train, 'X_test': X_test, 'y_test': y_test, 'y_': y_}
-        save_object(data_dict, save_data_folder + '/data_dict_clf1_' + str(n_features) + '_' + str(X_train.shape[0]))
+    data_dict = {'clf': clf, 'features': features, 'score': score, 'confusion_matrix': confusion_matrix_,
+                 'X_train': X_train, 'y_train': y_train, 'X_test': X_test, 'y_test': y_test, 'y_': y_}
+    # save_object(data_dict, save_data_folder + '/5_data_dict_randomstate7')
+    save_object(data_dict, save_data_folder + '/data_dict')
 
     end = time.perf_counter()
     print('===== finish saving data, total time passed: ' + str(end - start))
