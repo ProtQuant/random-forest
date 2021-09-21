@@ -121,8 +121,6 @@
     ...
     ```
 
-<<<<<<< HEAD
-
 
 
 # rf_classifier1.py
