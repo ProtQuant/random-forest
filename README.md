@@ -7,6 +7,22 @@
 
   It can be separated into two parts: data preprocessing and feature elimination
 
+* Software dependencies:
+
+  ```python
+  import copy
+  import os
+  import pickle
+  import time
+  import numpy as np
+  import pandas as pd
+  from sklearn.ensemble import RandomForestRegressor
+  from sklearn.metrics import r2_score
+  from sklearn.model_selection import train_test_split
+  from sklearn.base import clone
+  from matplotlib import pyplot as plt
+  ```
+
 * Default file structure:
 
   ```
